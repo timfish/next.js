@@ -137,7 +137,7 @@ let lastNativeBindingsLoadErrorCode:
   | 'unsupported_target'
   | string
   | undefined = undefined
-let nativeBindings: Binding
+let nativeBindings: any
 let wasmBindings: any
 let downloadWasmPromise: any
 let pendingBindings: any
@@ -157,21 +157,21 @@ export interface Binding {
       stream: any
       get: any
     }
+    mdx: {
+      compile: any
+      compileSync: any
+    }
     createProject: (
       options: ProjectOptions,
       turboEngineOptions?: TurboEngineOptions
     ) => Promise<Project>
-    startTurbopackTraceServer: (path: string) => void
-  }
-  mdx: {
-    compile: any
-    compileSync: any
   }
   minify: any
   minifySync: any
   transform: any
   transformSync: any
   parse: any
+  parseSync: any
 
   getTargetTriple(): string | undefined
 
@@ -749,10 +749,7 @@ function rustifyEnv(env: Record<string, string>): RustifiedEnv {
 }
 
 // TODO(sokra) Support wasm option.
-function bindingToApi(
-  binding: any,
-  _wasm: boolean
-): Binding['turbo']['createProject'] {
+function bindingToApi(binding: any, _wasm: boolean) {
   type NativeFunction<T> = (
     callback: (err: Error, value: T) => void
   ) => Promise<{ __napiType: 'RootTask' }>
@@ -1194,10 +1191,10 @@ function bindingToApi(
     }
   }
 
-  const createProject: Binding['turbo']['createProject'] = async (
-    options,
-    turboEngineOptions
-  ) => {
+  async function createProject(
+    options: ProjectOptions,
+    turboEngineOptions: TurboEngineOptions
+  ) {
     return new ProjectImpl(
       await binding.projectNew(
         await rustifyProjectOptions(options),
@@ -1254,6 +1251,9 @@ async function loadWasm(importPath = '') {
           return bindings?.parse
             ? bindings.parse(src.toString(), options)
             : Promise.resolve(bindings.parseSync(src.toString(), options))
+        },
+        parseSync(src: string, options: any) {
+          return bindings.parseSync(src.toString(), options)
         },
         getTargetTriple() {
           return undefined
@@ -1468,12 +1468,6 @@ function loadNative(importPath?: string) {
           },
         },
         createProject: bindingToApi(customBindings ?? bindings, false),
-        startTurbopackTraceServer: (traceFilePath) => {
-          Log.warn(
-            'Turbopack trace server started. View trace at https://turbo-trace-viewer.vercel.app/'
-          )
-          ;(customBindings ?? bindings).startTurbopackTraceServer(traceFilePath)
-        },
       },
       mdx: {
         compile: (src: string, options: any) =>
