@@ -32,7 +32,7 @@ export interface CacheHandlerContext {
   fetchCacheKeyPrefix?: string
   prerenderManifest?: PrerenderManifest
   revalidatedTags: string[]
-  experimental: { ppr: boolean }
+  isAppPPREnabled?: boolean
   _appDir: boolean
   _pagesDir: boolean
   _requestHeaders: IncrementalCache['requestHeaders']
@@ -98,7 +98,7 @@ export class IncrementalCache implements IncrementalCacheType {
     fetchCacheKeyPrefix,
     CurCacheHandler,
     allowedRevalidateHeaderKeys,
-    experimental,
+    isAppPPREnabled,
   }: {
     fs?: CacheFs
     dev: boolean
@@ -115,7 +115,7 @@ export class IncrementalCache implements IncrementalCacheType {
     getPrerenderManifest: () => PrerenderManifest
     fetchCacheKeyPrefix?: string
     CurCacheHandler?: typeof CacheHandler
-    experimental: { ppr: boolean }
+    isAppPPREnabled: boolean
   }) {
     const debug = !!process.env.NEXT_PRIVATE_DEBUG_CACHE
     this.hasCustomCacheHandler = Boolean(CurCacheHandler)
@@ -186,7 +186,7 @@ export class IncrementalCache implements IncrementalCacheType {
         _appDir: !!appDir,
         _requestHeaders: requestHeaders,
         fetchCacheKeyPrefix,
-        experimental,
+        isAppPPREnabled,
       })
     }
   }
@@ -424,7 +424,7 @@ export class IncrementalCache implements IncrementalCacheType {
     cacheKey: string,
     ctx: {
       kindHint?: IncrementalCacheKindHint
-      revalidate?: number | false
+      revalidate?: Revalidate
       fetchUrl?: string
       fetchIdx?: number
       tags?: string[]
@@ -547,7 +547,7 @@ export class IncrementalCache implements IncrementalCacheType {
     pathname: string,
     data: IncrementalCacheValue | null,
     ctx: {
-      revalidate?: number | false
+      revalidate?: Revalidate
       fetchCache?: boolean
       fetchUrl?: string
       fetchIdx?: number
