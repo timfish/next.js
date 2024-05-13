@@ -865,7 +865,6 @@ export const defaultConfig: NextConfig = {
     keepAlive: true,
   },
   staticPageGenerationTimeout: 60,
-  swcMinify: true,
   output: !!process.env.NEXT_PRIVATE_STANDALONE ? 'standalone' : undefined,
   modularizeImports: undefined,
   experimental: {
