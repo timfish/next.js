@@ -382,14 +382,7 @@ export function getLoaderSWCOptions({
     esm: !!esm,
   })
   baseOptions.fontLoaders = {
-    fontLoaders: [
-      'next/font/local',
-      'next/font/google',
-
-      // TODO: remove this in the next major version
-      '@next/font/local',
-      '@next/font/google',
-    ],
+    fontLoaders: ['next/font/local', 'next/font/google'],
     relativeFilePathFromRoot,
   }
   baseOptions.cjsRequireOptimizer = {
@@ -444,6 +437,8 @@ export function getLoaderSWCOptions({
       preferEsm: !!esm,
       isPageFile,
       env: {
+        // Workaround acorn issues
+        include: ['transform-class-properties'],
         targets: {
           // Targets the current version of Node.js
           node: process.versions.node,
