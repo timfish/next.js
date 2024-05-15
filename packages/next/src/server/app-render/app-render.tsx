@@ -75,7 +75,10 @@ import { appendMutableCookies } from '../web/spec-extension/adapters/request-coo
 import { createServerInsertedHTML } from './server-inserted-html'
 import { getRequiredScripts } from './required-scripts'
 import { addPathPrefix } from '../../shared/lib/router/utils/add-path-prefix'
-import { makeGetServerInsertedHTML } from './make-get-server-inserted-html'
+import {
+  getTracedMetadata,
+  makeGetServerInsertedHTML,
+} from './make-get-server-inserted-html'
 import { walkTreeWithFlightRouterState } from './walk-tree-with-flight-router-state'
 import { createComponentTree } from './create-component-tree'
 import { getAssetQueryString } from './get-asset-query-string'
@@ -878,6 +881,11 @@ async function renderToHTMLOrFlightImpl(
       tree,
       formState,
     }: RenderToStreamOptions): Promise<RenderToStreamResult> => {
+      const tracingMetadata = getTracedMetadata(
+        getTracer().getTracePropagationData(),
+        renderOpts.experimental.clientTraceMetadata
+      )
+
       const polyfills: JSX.IntrinsicElements['script'][] =
         buildManifest.polyfillFiles
           .filter(
@@ -960,6 +968,7 @@ async function renderToHTMLOrFlightImpl(
         renderServerInsertedHTML,
         serverCapturedErrors: allCapturedErrors,
         basePath: renderOpts.basePath,
+        tracingMetadata: tracingMetadata,
       })
 
       const renderer = createStaticRenderer({
@@ -1102,9 +1111,8 @@ async function renderToHTMLOrFlightImpl(
                   </HeadManagerContext.Provider>
                 )
 
-                const { stream: resumeStream } = await resumeRenderer.render(
-                  resumeChildren
-                )
+                const { stream: resumeStream } =
+                  await resumeRenderer.render(resumeChildren)
                 // First we write everything from the prerender, then we write everything from the aborted resume render
                 renderedHTMLStream = chainStreams(stream, resumeStream)
               }
@@ -1232,8 +1240,8 @@ async function renderToHTMLOrFlightImpl(
         const errorType = is404
           ? 'not-found'
           : hasRedirectError
-          ? 'redirect'
-          : undefined
+            ? 'redirect'
+            : undefined
 
         const [errorPreinitScripts, errorBootstrapScript] = getRequiredScripts(
           buildManifest,
@@ -1290,6 +1298,7 @@ async function renderToHTMLOrFlightImpl(
                 renderServerInsertedHTML,
                 serverCapturedErrors: [],
                 basePath: renderOpts.basePath,
+                tracingMetadata: tracingMetadata,
               }),
               serverInsertedHTMLToHead: true,
               validateRootLayout,
