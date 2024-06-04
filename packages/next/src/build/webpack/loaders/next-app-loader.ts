@@ -21,8 +21,8 @@ import { promises as fs } from 'fs'
 import { isAppRouteRoute } from '../../../lib/is-app-route-route'
 import { isMetadataRoute } from '../../../lib/metadata/is-metadata-route'
 import type { NextConfig } from '../../../server/config-shared'
-import { AppPathnameNormalizer } from '../../../server/future/normalizers/built/app/app-pathname-normalizer'
-import { AppBundlePathNormalizer } from '../../../server/future/normalizers/built/app/app-bundle-path-normalizer'
+import { AppPathnameNormalizer } from '../../../server/normalizers/built/app/app-pathname-normalizer'
+import { AppBundlePathNormalizer } from '../../../server/normalizers/built/app/app-bundle-path-normalizer'
 import type { MiddlewareConfig } from '../../analysis/get-page-static-info'
 import { getFilenameAndExtension } from './next-metadata-route-loader'
 import { isAppBuiltinNotFoundPage } from '../../utils'
@@ -295,9 +295,8 @@ async function createTreeCodeFromPath(
         }
 
         // Use '' for segment as it's the page. There can't be a segment called '' so this is the safest way to add it.
-        props[
-          normalizeParallelKey(parallelKey)
-        ] = `['${PAGE_SEGMENT_KEY}', {}, {
+        props[normalizeParallelKey(parallelKey)] =
+          `['${PAGE_SEGMENT_KEY}', {}, {
           page: [() => import(/* webpackMode: "eager" */ ${JSON.stringify(
             resolvedPagePath
           )}), ${JSON.stringify(resolvedPagePath)}],
@@ -408,8 +407,8 @@ async function createTreeCodeFromPath(
         parallelSegmentKey === PARALLEL_CHILDREN_SEGMENT
           ? 'children'
           : parallelSegmentKey === PAGE_SEGMENT
-          ? PAGE_SEGMENT_KEY
-          : parallelSegmentKey
+            ? PAGE_SEGMENT_KEY
+            : parallelSegmentKey
 
       const normalizedParallelKey = normalizeParallelKey(parallelKey)
       let subtreeCode = pageSubtreeCode
@@ -452,9 +451,8 @@ async function createTreeCodeFromPath(
       ]`
     }
 
-    const adjacentParallelSegments = await resolveAdjacentParallelSegments(
-      segmentPath
-    )
+    const adjacentParallelSegments =
+      await resolveAdjacentParallelSegments(segmentPath)
 
     for (const adjacentParallelSegment of adjacentParallelSegments) {
       if (!props[normalizeParallelKey(adjacentParallelSegment)]) {
