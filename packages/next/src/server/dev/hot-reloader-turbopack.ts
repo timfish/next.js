@@ -1,6 +1,6 @@
 import type { Socket } from 'net'
 import { mkdir, writeFile } from 'fs/promises'
-import { join } from 'path'
+import { join, extname } from 'path'
 
 import ws from 'next/dist/compiled/ws'
 
@@ -62,6 +62,7 @@ import {
   type TopLevelIssuesMap,
   isWellKnownError,
   printNonFatalIssue,
+  normalizeAppMetadataRoutePage,
 } from './turbopack-utils'
 import {
   propagateServerField,
@@ -810,9 +811,13 @@ export async function createHotReloaderTurbopack(
       await currentEntriesHandling
 
       const isInsideAppDir = routeDef.bundlePath.startsWith('app/')
+      const normalizedAppPage = normalizeAppMetadataRoutePage(
+        page,
+        extname(routeDef.filename)
+      )
 
       const route = isInsideAppDir
-        ? currentEntrypoints.app.get(page)
+        ? currentEntrypoints.app.get(normalizedAppPage)
         : currentEntrypoints.page.get(page)
 
       if (!route) {
