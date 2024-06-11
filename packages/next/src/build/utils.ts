@@ -1378,9 +1378,8 @@ export async function buildAppStaticPaths({
   return StaticGenerationAsyncStorageWrapper.wrap(
     ComponentMod.staticGenerationAsyncStorage,
     {
-      urlPathname: page,
+      page,
       renderOpts: {
-        originalPathname: page,
         incrementalCache,
         supportsDynamicHTML: true,
         isRevalidate: false,

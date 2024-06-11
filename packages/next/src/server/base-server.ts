@@ -2326,7 +2326,6 @@ export default abstract class Server<
               // it is not a dynamic RSC request then it is a revalidation
               // request.
               isRevalidate: isSSG && !postponed && !isDynamicRSCRequest,
-              originalPathname: components.ComponentMod.originalPathname,
               serverActions: this.nextConfig.experimental.serverActions,
             }
           : {}),
@@ -2394,7 +2393,6 @@ export default abstract class Server<
               experimental: {
                 after: renderOpts.experimental.after,
               },
-              originalPathname: components.ComponentMod.originalPathname,
               supportsDynamicResponse,
               incrementalCache,
               isRevalidate: isSSG,
