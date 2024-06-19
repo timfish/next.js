@@ -148,6 +148,7 @@ export const css = curry(async function css(
   const {
     prependData: sassPrependData,
     additionalData: sassAdditionalData,
+    implementation: sassImplementation,
     ...sassOptions
   } = ctx.sassOptions
 
@@ -164,6 +165,7 @@ export const css = curry(async function css(
     {
       loader: require.resolve('next/dist/compiled/sass-loader'),
       options: {
+        implementation: sassImplementation,
         // Source maps are required so that `resolve-url-loader` can locate
         // files original to their source directory.
         sourceMap: true,
@@ -403,11 +405,11 @@ export const css = curry(async function css(
     const allowedPagesGlobalCSSIssuer = ctx.hasAppDir
       ? undefined
       : shouldIncludeExternalCSSImports
-      ? undefined
-      : {
-          and: [ctx.rootDirectory],
-          not: [/node_modules/],
-        }
+        ? undefined
+        : {
+            and: [ctx.rootDirectory],
+            not: [/node_modules/],
+          }
 
     fns.push(
       loader({
