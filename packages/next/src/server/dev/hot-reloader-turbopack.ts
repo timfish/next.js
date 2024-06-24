@@ -62,7 +62,7 @@ import {
   type TopLevelIssuesMap,
   isWellKnownError,
   printNonFatalIssue,
-  normalizeAppMetadataRoutePage,
+  normalizedPageToTurbopackStructureRoute,
 } from './turbopack-utils'
 import {
   propagateServerField,
@@ -811,7 +811,7 @@ export async function createHotReloaderTurbopack(
       await currentEntriesHandling
 
       const isInsideAppDir = routeDef.bundlePath.startsWith('app/')
-      const normalizedAppPage = normalizeAppMetadataRoutePage(
+      const normalizedAppPage = normalizedPageToTurbopackStructureRoute(
         page,
         extname(routeDef.filename)
       )
