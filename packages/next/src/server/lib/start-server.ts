@@ -46,6 +46,7 @@ export async function getRequestHandlers({
   dir,
   port,
   isDev,
+  onCleanup,
   server,
   hostname,
   minimalMode,
@@ -56,6 +57,7 @@ export async function getRequestHandlers({
   dir: string
   port: number
   isDev: boolean
+  onCleanup: (listener: () => Promise<void>) => void
   server?: import('http').Server
   hostname?: string
   minimalMode?: boolean
@@ -67,6 +69,7 @@ export async function getRequestHandlers({
     dir,
     port,
     hostname,
+    onCleanup,
     dev: isDev,
     minimalMode,
     server,
@@ -262,9 +265,13 @@ export async function startServer(
       Log.event(`Starting...`)
 
       try {
+        const cleanupListeners = [() => new Promise((res) => server.close(res))]
         const cleanup = () => {
           debug('start-server process cleanup')
-          server.close(() => process.exit(0))
+          ;(async () => {
+            await Promise.all(cleanupListeners.map((f) => f()))
+            process.exit(0)
+          })()
         }
         const exception = (err: Error) => {
           if (isPostpone(err)) {
@@ -294,6 +301,7 @@ export async function startServer(
           dir,
           port,
           isDev,
+          onCleanup: (listener) => cleanupListeners.push(listener),
           server,
           hostname,
           minimalMode,

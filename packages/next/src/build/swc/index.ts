@@ -669,6 +669,8 @@ export interface Project {
   updateInfoSubscribe(
     aggregationMs: number
   ): AsyncIterableIterator<TurbopackResult<UpdateMessage>>
+
+  onExit(): Promise<void>
 }
 
 export type Route =
@@ -1079,6 +1081,10 @@ function bindingToApi(
           )
       )
       return subscription
+    }
+
+    onExit(): Promise<void> {
+      return binding.projectOnExit(this._nativeProject)
     }
   }
 
