@@ -2357,6 +2357,8 @@ export default abstract class Server<
         postponed,
         waitUntil: this.getWaitUntil(),
         onClose: res.onClose.bind(res),
+        // only available in dev
+        setAppIsrStatus: (this as any).setAppIsrStatus,
       }
 
       if (isDebugPPRSkeleton) {

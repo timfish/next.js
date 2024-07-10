@@ -25,7 +25,7 @@ import { PHASE_PRODUCTION_SERVER } from '../shared/lib/constants'
 import { getTracer } from './lib/trace/tracer'
 import { NextServerSpan } from './lib/trace/constants'
 import { formatUrl } from '../shared/lib/router/utils/format-url'
-import { checkNodeDebugType } from './lib/utils'
+import type { ServerFields } from './lib/router-utils/setup-dev-bundler'
 
 let ServerImpl: typeof Server
 
@@ -141,7 +141,7 @@ export class NextServer {
     return server.render404(...args)
   }
 
-  async prepare(serverFields?: any) {
+  async prepare(serverFields?: ServerFields) {
     if (this.standaloneMode) return
 
     const server = await this.getServer()
@@ -199,11 +199,9 @@ export class NextServer {
     // check serialized build config when available
     if (process.env.NODE_ENV === 'production') {
       try {
-        const serializedConfig = require(path.join(
-          dir,
-          '.next',
-          SERVER_FILES_MANIFEST
-        )).config
+        const serializedConfig = require(
+          path.join(dir, '.next', SERVER_FILES_MANIFEST)
+        ).config
 
         // @ts-expect-error internal field
         config.experimental.isExperimentalCompile =
@@ -285,8 +283,6 @@ class NextCustomServer extends NextServer {
     const { getRequestHandlers } =
       require('./lib/start-server') as typeof import('./lib/start-server')
 
-    const isNodeDebugging = !!checkNodeDebugType()
-
     const initResult = await getRequestHandlers({
       dir: this.options.dir!,
       port: this.options.port || 3000,
@@ -294,7 +290,7 @@ class NextCustomServer extends NextServer {
       onCleanup: (listener) => this.cleanupListeners.push(listener),
       hostname: this.options.hostname || 'localhost',
       minimalMode: this.options.minimalMode,
-      isNodeDebugging: !!isNodeDebugging,
+      quiet: this.options.quiet,
     })
     this.requestHandler = initResult[0]
     this.upgradeHandler = initResult[1]
