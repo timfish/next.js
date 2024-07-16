@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, rc::Rc};
 
 use regex::Regex;
 use serde::Deserialize;
@@ -52,7 +52,7 @@ struct ReactServerComponents<C: Comments> {
     filepath: String,
     app_dir: Option<PathBuf>,
     comments: C,
-    directive_import_collection: Option<(bool, bool, Vec<ModuleImports>, Vec<String>)>,
+    directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<String>)>,
 }
 
 #[derive(Clone, Debug)]
@@ -472,10 +472,14 @@ struct ReactServerComponentValidator {
     filepath: String,
     app_dir: Option<PathBuf>,
     invalid_server_imports: Vec<JsWord>,
-    invalid_client_imports: Vec<JsWord>,
     invalid_server_lib_apis_mapping: HashMap<&'static str, Vec<&'static str>>,
-    pub directive_import_collection: Option<(bool, bool, Vec<ModuleImports>, Vec<String>)>,
+    invalid_client_imports: Vec<JsWord>,
+    invalid_client_lib_apis_mapping: HashMap<&'static str, Vec<&'static str>>,
+    pub directive_import_collection: Option<(bool, bool, RcVec<ModuleImports>, RcVec<String>)>,
 }
+
+// A type to workaround a clippy warning.
+type RcVec<T> = Rc<Vec<T>>;
 
 impl ReactServerComponentValidator {
     pub fn new(is_react_server_layer: bool, filename: String, app_dir: Option<PathBuf>) -> Self {
@@ -506,12 +510,12 @@ impl ReactServerComponentValidator {
                         "useSyncExternalStore",
                         "useTransition",
                         "useOptimistic",
+                        "useActionState",
                     ],
                 ),
                 (
                     "react-dom",
                     vec![
-                        "findDOMNode",
                         "flushSync",
                         "unstable_batchedUpdates",
                         "useFormStatus",
@@ -540,7 +544,10 @@ impl ReactServerComponentValidator {
                 JsWord::from("react-dom/server"),
                 JsWord::from("next/router"),
             ],
+
             invalid_client_imports: vec![JsWord::from("server-only"), JsWord::from("next/headers")],
+
+            invalid_client_lib_apis_mapping: [("next/server", vec!["unstable_after"])].into(),
         }
     }
 
@@ -627,13 +634,30 @@ impl ReactServerComponentValidator {
             return;
         }
         for import in imports {
-            let source = import.source.0.clone();
-            if self.invalid_client_imports.contains(&source) {
+            let source = &import.source.0;
+
+            if self.invalid_client_imports.contains(source) {
                 report_error(
                     &self.app_dir,
                     &self.filepath,
                     RSCErrorKind::NextRscErrClientImport((source.to_string(), import.source.1)),
                 );
+            }
+
+            let invalid_apis = self.invalid_client_lib_apis_mapping.get(source.as_str());
+            if let Some(invalid_apis) = invalid_apis {
+                for specifier in &import.specifiers {
+                    if invalid_apis.contains(&specifier.0.as_str()) {
+                        report_error(
+                            &self.app_dir,
+                            &self.filepath,
+                            RSCErrorKind::NextRscErrClientImport((
+                                specifier.0.to_string(),
+                                specifier.1,
+                            )),
+                        );
+                    }
+                }
             }
         }
     }
@@ -763,6 +787,8 @@ impl Visit for ReactServerComponentValidator {
     fn visit_module(&mut self, module: &Module) {
         let (is_client_entry, is_action_file, imports, export_names) =
             collect_top_level_directives_and_imports(&self.app_dir, &self.filepath, module);
+        let imports = Rc::new(imports);
+        let export_names = Rc::new(export_names);
 
         self.directive_import_collection = Some((
             is_client_entry,
