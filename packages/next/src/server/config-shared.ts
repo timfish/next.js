@@ -825,11 +825,13 @@ export interface NextConfig extends Record<string, any> {
     }
   >
 
-  logging?: {
-    fetches?: {
-      fullUrl?: boolean
-    }
-  }
+  logging?:
+    | {
+        fetches?: {
+          fullUrl?: boolean
+        }
+      }
+    | boolean
 
   /**
    * Enable experimental features. Note that all experimental features are subject to breaking changes in the future.
