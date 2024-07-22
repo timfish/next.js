@@ -857,11 +857,13 @@ export default async function loadConfig(
     rawConfig,
     silent = true,
     onLoadUserConfig,
+    reactProductionProfiling,
   }: {
     customConfig?: object | null
     rawConfig?: boolean
     silent?: boolean
     onLoadUserConfig?: (conf: NextConfig) => void
+    reactProductionProfiling?: boolean
   } = {}
 ): Promise<NextConfigComplete> {
   if (!process.env.__NEXT_PRIVATE_RENDER_WORKER) {
@@ -1006,6 +1008,10 @@ export default async function loadConfig(
         (canonicalBase.endsWith('/')
           ? canonicalBase.slice(0, -1)
           : canonicalBase) || ''
+    }
+
+    if (reactProductionProfiling) {
+      userConfig.reactProductionProfiling = reactProductionProfiling
     }
 
     if (
