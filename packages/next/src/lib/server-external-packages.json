@@ -24,6 +24,7 @@
   "firebase-admin",
   "jest",
   "jsdom",
+  "keyv",
   "libsql",
   "mdx-bundler",
   "mongodb",
