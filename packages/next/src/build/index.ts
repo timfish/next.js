@@ -1218,8 +1218,7 @@ export default async function build(
 
       await writeEdgePartialPrerenderManifest(distDir, {})
 
-      const outputFileTracingRoot =
-        config.experimental.outputFileTracingRoot || dir
+      const outputFileTracingRoot = config.outputFileTracingRoot || dir
 
       const pagesManifestPath = path.join(
         distDir,
@@ -1344,7 +1343,7 @@ export default async function build(
         const project = await bindings.turbo.createProject(
           {
             projectPath: dir,
-            rootPath: config.experimental.outputFileTracingRoot || dir,
+            rootPath: config.outputFileTracingRoot || dir,
             nextConfig: config,
             jsConfig: await getTurbopackJsConfig(dir, config),
             watch: false,
