@@ -1479,20 +1479,23 @@ export async function buildAppStaticPaths({
         }
 
         const builtParams = await buildParams()
-        const fallback = !generateParams.some(
-          // TODO: dynamic params should be allowed
-          // to be granular per segment but we need
-          // additional information stored/leveraged in
-          // the prerender-manifest to allow this behavior
-          (generate) => generate.config?.dynamicParams === false
-        )
+
+        // We should return `fallback: 'blocking'` when either `dynamicParams`
+        // is not set or it's only set to `true`. When it's instead set to
+        // `false`, we need to set `fallback: false` to prevent additional pages
+        // from being rendered.
+        const fallback: false | 'blocking' =
+          !generateParams.some(
+            // TODO: dynamic params should be allowed
+            // to be granular per segment but we need
+            // additional information stored/leveraged in
+            // the prerender-manifest to allow this behavior
+            (generate) => generate.config?.dynamicParams === false
+          ) && 'blocking'
 
         if (!hadAllParamsGenerated) {
           return {
-            fallback:
-              process.env.NODE_ENV === 'production' && isDynamicRoute(page)
-                ? true
-                : undefined,
+            fallback,
             prerenderedRoutes: undefined,
           }
         }
