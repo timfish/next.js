@@ -53,9 +53,7 @@ const isNextFont = (pathname: string | null) =>
 export type RenderServer = Pick<
   typeof import('./render-server'),
   | 'initialize'
-  | 'deleteCache'
   | 'clearModuleContext'
-  | 'deleteAppClientCache'
   | 'propagateServerField'
   | 'getServerField'
 >
