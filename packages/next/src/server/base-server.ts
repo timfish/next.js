@@ -1950,13 +1950,14 @@ export default abstract class Server<
 
       if (this.nextConfig.output === 'export') {
         const page = components.page
-        if (fallbackMode === FallbackMode.BLOCKING_RENDER) {
+        if (!staticPaths) {
           throw new Error(
             `Page "${page}" is missing exported function "generateStaticParams()", which is required with "output: export" config.`
           )
         }
+
         const resolvedWithoutSlash = removeTrailingSlash(resolvedUrlPathname)
-        if (!staticPaths?.includes(resolvedWithoutSlash)) {
+        if (!staticPaths.includes(resolvedWithoutSlash)) {
           throw new Error(
             `Page "${page}" is missing param "${resolvedWithoutSlash}" in "generateStaticParams()", which is required with "output: export" config.`
           )
@@ -2724,7 +2725,7 @@ export default abstract class Server<
           fallbackMode = pathsResult.fallbackMode
         } else {
           staticPaths = undefined
-          fallbackMode = FallbackMode.NOT_FOUND
+          fallbackMode = undefined
         }
       }
 
@@ -2732,10 +2733,10 @@ export default abstract class Server<
       // the prerendered page. This ensures that the correct content is served
       // to the bot in the head.
       if (
-        fallbackMode === FallbackMode.SERVE_PRERENDER &&
+        fallbackMode === FallbackMode.SERVE_STATIC_PRERENDER &&
         isBot(req.headers['user-agent'] || '')
       ) {
-        fallbackMode = FallbackMode.BLOCKING_RENDER
+        fallbackMode = FallbackMode.BLOCKING_STATIC_RENDER
       }
 
       // skip on-demand revalidate if cache is not present and
@@ -2760,7 +2761,7 @@ export default abstract class Server<
         isOnDemandRevalidate &&
         (fallbackMode !== FallbackMode.NOT_FOUND || previousCacheEntry)
       ) {
-        fallbackMode = FallbackMode.BLOCKING_RENDER
+        fallbackMode = FallbackMode.BLOCKING_STATIC_RENDER
       }
 
       // We use `ssgCacheKey` here as it is normalized to match the encoding
@@ -2782,7 +2783,7 @@ export default abstract class Server<
 
       // @ts-expect-error internal field
       if (this.nextConfig.experimental.isExperimentalCompile) {
-        fallbackMode = FallbackMode.BLOCKING_RENDER
+        fallbackMode = FallbackMode.BLOCKING_STATIC_RENDER
       }
 
       // When we did not respond from cache, we need to choose to block on
@@ -2799,7 +2800,7 @@ export default abstract class Server<
       if (
         process.env.NEXT_RUNTIME !== 'edge' &&
         !this.minimalMode &&
-        fallbackMode !== FallbackMode.BLOCKING_RENDER &&
+        fallbackMode !== FallbackMode.BLOCKING_STATIC_RENDER &&
         staticPathKey &&
         !didRespond &&
         !isPreviewMode &&

@@ -90,7 +90,7 @@ import { formatDynamicImportPath } from '../lib/format-dynamic-import-path'
 import { isInterceptionRouteAppPath } from '../server/lib/interception-routes'
 import { checkIsRoutePPREnabled } from '../server/lib/experimental/ppr'
 import type { Params } from '../client/components/params'
-import { FallbackMode } from '../lib/fallback'
+import type { FallbackMode } from '../lib/fallback'
 import {
   fallbackToStaticPathsResult,
   parseFallbackAppConfig,
@@ -1487,20 +1487,17 @@ export async function buildAppStaticPaths({
         }
 
         const builtParams = await buildParams()
-        const fallback = parseFallbackAppConfig(
-          reduceAppConfig(generateParams, nextConfigOutput)
-        )
+        const appConfig = reduceAppConfig(generateParams, nextConfigOutput)
 
-        if (
-          fallback === FallbackMode.BLOCKING_RENDER &&
-          nextConfigOutput === 'export'
-        ) {
+        if (appConfig.dynamicParams === true && nextConfigOutput === 'export') {
           throw new Error(
             '"dynamicParams: true" cannot be used with "output: export". See more info here: https://nextjs.org/docs/app/building-your-application/deploying/static-exports'
           )
         }
 
-        if (!hadAllParamsGenerated) {
+        const fallback = parseFallbackAppConfig(appConfig)
+
+        if (!hadAllParamsGenerated || !fallback) {
           return {
             fallback,
             prerenderedRoutes: undefined,
@@ -1791,10 +1788,12 @@ export async function isPageStatic({
 }
 
 function reduceAppConfig(
-  generateParams: GenerateParamsResults,
+  segments: GenerateParamsResults,
   nextConfigOutput: 'standalone' | 'export' | undefined
 ): AppConfig {
-  return generateParams.reduce<AppConfig>((builtConfig, curGenParams) => {
+  const config: AppConfig = {}
+
+  for (const segment of segments) {
     const {
       dynamic,
       fetchCache,
@@ -1802,63 +1801,64 @@ function reduceAppConfig(
       revalidate: curRevalidate,
       experimental_ppr,
       dynamicParams,
-    } = curGenParams?.config || {}
+    } = segment?.config ?? {}
 
     // TODO: should conflicting configs here throw an error
     // e.g. if layout defines one region but page defines another
-    if (typeof builtConfig.preferredRegion === 'undefined') {
-      builtConfig.preferredRegion = preferredRegion
+    if (typeof config.preferredRegion === 'undefined') {
+      config.preferredRegion = preferredRegion
     }
-    if (typeof builtConfig.dynamic === 'undefined') {
-      builtConfig.dynamic = dynamic
+
+    if (typeof config.dynamic === 'undefined') {
+      config.dynamic = dynamic
     }
-    if (typeof builtConfig.fetchCache === 'undefined') {
-      builtConfig.fetchCache = fetchCache
+
+    if (typeof config.fetchCache === 'undefined') {
+      config.fetchCache = fetchCache
     }
+
     // If partial prerendering has been set, only override it if the current value is
     // provided as it's resolved from root layout to leaf page.
     if (typeof experimental_ppr !== 'undefined') {
-      builtConfig.experimental_ppr = experimental_ppr
+      config.experimental_ppr = experimental_ppr
     }
 
     // any revalidate number overrides false
     // shorter revalidate overrides longer (initially)
-    if (typeof builtConfig.revalidate === 'undefined') {
-      builtConfig.revalidate = curRevalidate
+    if (typeof config.revalidate === 'undefined') {
+      config.revalidate = curRevalidate
+    }
+
+    if (typeof config.dynamicParams === 'undefined') {
+      config.dynamicParams = dynamicParams
     }
 
     if (
       typeof curRevalidate === 'number' &&
-      (typeof builtConfig.revalidate !== 'number' ||
-        curRevalidate < builtConfig.revalidate)
+      (typeof config.revalidate !== 'number' ||
+        curRevalidate < config.revalidate)
     ) {
-      builtConfig.revalidate = curRevalidate
+      config.revalidate = curRevalidate
     }
+  }
 
-    // The default for the dynamicParams will be based on the dynamic config
-    // and the next config output option. If any of these are set or the
-    // output config is set to export, set the dynamicParams to false,
-    // otherwise the default is true.
-    if (typeof builtConfig.dynamicParams === 'undefined') {
-      if (
-        builtConfig.dynamic === 'error' ||
-        builtConfig.dynamic === 'force-static' ||
-        nextConfigOutput === 'export'
-      ) {
-        builtConfig.dynamicParams = false
-      } else {
-        builtConfig.dynamicParams = true
-      }
+  // The default for the dynamicParams will be based on the dynamic config
+  // and the next config output option. If any of these are set or the
+  // output config is set to export, set the dynamicParams to false,
+  // otherwise the default is true.
+  if (typeof config.dynamicParams === 'undefined') {
+    if (
+      config.dynamic === 'error' ||
+      config.dynamic === 'force-static' ||
+      nextConfigOutput === 'export'
+    ) {
+      config.dynamicParams = false
+    } else {
+      config.dynamicParams = true
     }
+  }
 
-    // If the dynamicParams is explicitly set to false, we should not
-    // dynamically generate params for this page.
-    if (dynamicParams === false) {
-      builtConfig.dynamicParams = false
-    }
-
-    return builtConfig
-  }, {})
+  return config
 }
 
 export async function hasCustomGetInitialProps({

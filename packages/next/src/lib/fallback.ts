@@ -5,24 +5,24 @@ import type { AppConfig } from '../build/utils'
  */
 export const enum FallbackMode {
   /**
-   * A BLOCKING_RENDER fallback will block the request until the page is\
+   * A BLOCKING_STATIC_RENDER fallback will block the request until the page is
    * generated. No fallback page will be rendered, and users will have to wait
    * to render the page.
    */
-  BLOCKING_RENDER = 'BLOCKING_RENDER',
-
-  /**
-   * When set to NOT_FOUND, pages that are not already prerendered will result
-   * in a not found response.
-   */
-  NOT_FOUND = 'NOT_FOUND',
+  BLOCKING_STATIC_RENDER = 'BLOCKING_STATIC_RENDER',
 
   /**
    * When set to PRERENDER, a fallback page will be sent to users in place of
    * forcing them to wait for the page to be generated. This allows the user to
    * see a rendered page earlier.
    */
-  SERVE_PRERENDER = 'SERVE_PRERENDER',
+  SERVE_STATIC_PRERENDER = 'SERVE_STATIC_PRERENDER',
+
+  /**
+   * When set to NOT_FOUND, pages that are not already prerendered will result
+   * in a not found response.
+   */
+  NOT_FOUND = 'NOT_FOUND',
 }
 
 /**
@@ -37,14 +37,20 @@ export type GetStaticPathsFallback = boolean | 'blocking'
  * @returns The fallback mode.
  */
 export function parseFallbackField(
-  fallbackField: string | false | null
-): FallbackMode {
+  fallbackField: string | false | null | undefined
+): FallbackMode | undefined {
   if (typeof fallbackField === 'string') {
-    return FallbackMode.SERVE_PRERENDER
+    return FallbackMode.SERVE_STATIC_PRERENDER
   } else if (fallbackField === null) {
-    return FallbackMode.BLOCKING_RENDER
-  } else {
+    return FallbackMode.BLOCKING_STATIC_RENDER
+  } else if (fallbackField === false) {
     return FallbackMode.NOT_FOUND
+  } else if (fallbackField === undefined) {
+    return undefined
+  } else {
+    throw new Error(
+      `Invalid fallback option: ${fallbackField}. Fallback option must be a string, null, undefined, or false.`
+    )
   }
 }
 
@@ -58,9 +64,9 @@ export function parseFallbackStaticPathsResult(
   result: GetStaticPathsFallback
 ): FallbackMode {
   if (result === true) {
-    return FallbackMode.SERVE_PRERENDER
+    return FallbackMode.SERVE_STATIC_PRERENDER
   } else if (result === 'blocking') {
-    return FallbackMode.BLOCKING_RENDER
+    return FallbackMode.BLOCKING_STATIC_RENDER
   } else {
     return FallbackMode.NOT_FOUND
   }
@@ -76,9 +82,9 @@ export function fallbackToStaticPathsResult(
   fallback: FallbackMode
 ): GetStaticPathsFallback {
   switch (fallback) {
-    case FallbackMode.SERVE_PRERENDER:
+    case FallbackMode.SERVE_STATIC_PRERENDER:
       return true
-    case FallbackMode.BLOCKING_RENDER:
+    case FallbackMode.BLOCKING_STATIC_RENDER:
       return 'blocking'
     case FallbackMode.NOT_FOUND:
     default:
@@ -92,10 +98,22 @@ export function fallbackToStaticPathsResult(
  * @param appConfig The app config.
  * @returns The fallback mode.
  */
-export function parseFallbackAppConfig(appConfig: AppConfig): FallbackMode {
+export function parseFallbackAppConfig(
+  appConfig: AppConfig
+): FallbackMode | undefined {
+  // In development, we still want to dynamically render the pages, but we do
+  // want to preserve the not-found fallback behavior.
+  if (process.env.NODE_ENV !== 'production') {
+    if (appConfig.dynamicParams === false) {
+      return FallbackMode.NOT_FOUND
+    } else {
+      return undefined
+    }
+  }
+
   if (appConfig.dynamicParams === false) {
     return FallbackMode.NOT_FOUND
   } else {
-    return FallbackMode.BLOCKING_RENDER
+    return FallbackMode.BLOCKING_STATIC_RENDER
   }
 }

@@ -2222,12 +2222,12 @@ export default async function build(
 
                           if (
                             workerResult.prerenderFallback ===
-                            FallbackMode.BLOCKING_RENDER
+                            FallbackMode.BLOCKING_STATIC_RENDER
                           ) {
                             ssgBlockingFallbackPages.add(page)
                           } else if (
                             workerResult.prerenderFallback ===
-                            FallbackMode.SERVE_PRERENDER
+                            FallbackMode.SERVE_STATIC_PRERENDER
                           ) {
                             ssgStaticFallbackPages.add(page)
                           }
